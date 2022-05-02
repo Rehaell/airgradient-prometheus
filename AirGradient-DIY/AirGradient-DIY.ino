@@ -6,17 +6,22 @@
 #include <AirGradient.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <WiFiUdp.h>
 #include <WiFiClient.h>
 
 #include <Wire.h>
 #include "SSD1306Wire.h"
 
+#include <NTPClient.h>
+
+#include "network_info.h"
+
 AirGradient ag = AirGradient();
 
 // Config ----------------------------------------------------------------------
 
-// Optional.
-const char* deviceId = "";
+// Optional
+const char* deviceId = "your-very-own-hostname"; //change me
 
 // set to 'F' to switch display from Celcius to Fahrenheit
 char temp_display = 'C';
@@ -26,33 +31,28 @@ const bool hasPM = true;
 const bool hasCO2 = true;
 const bool hasSHT = true;
 
-// WiFi and IP connection info.
-const char* ssid = "PleaseChangeMe";
-const char* password = "PleaseChangeMe";
-const int port = 9926;
-
-// Uncomment the line below to configure a static IP address.
-// #define staticip
-#ifdef staticip
-IPAddress static_ip(192, 168, 0, 0);
-IPAddress gateway(192, 168, 0, 0);
-IPAddress subnet(255, 255, 255, 0);
-#endif
-
-// The frequency of measurement updates.
-const int updateFrequency = 5000;
+// The frequency of measurement updates in milliseconds.
+const int updateFrequency = 60000; //60000 = one minute
 
 // For housekeeping.
 long lastUpdate;
 int counter = 0;
+
+
+//UTC time offset
+const long utcOffsetInSeconds = 3600; //UTC+1
+const char* ntpServer = "your-very-own-custom-ntp-server"; //custom NTP server
 
 // Config End ------------------------------------------------------------------
 
 SSD1306Wire display(0x3c, SDA, SCL);
 ESP8266WebServer server(port);
 
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, ntpServer, utcOffsetInSeconds); 
+
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   // Init Display.
   display.init();
@@ -106,12 +106,17 @@ void setup() {
   server.begin();
   Serial.println("HTTP server started at ip " + WiFi.localIP().toString() + ":" + String(port));
   showTextRectangle("Listening To", WiFi.localIP().toString() + ":" + String(port),true);
+  
+  timeClient.begin();
 }
 
 void loop() {
   long t = millis();
 
   server.handleClient();
+
+  timeClient.update();
+  
   updateScreen(t);
 }
 
@@ -202,34 +207,44 @@ void updateScreen(long now) {
       case 0:
         if (hasPM) {
           int stat = ag.getPM2_Raw();
-          showTextRectangle("PM2",String(stat),false);
+          showTextRectangle("PM2",String(stat),true);
+          Serial.println("PM2 " + String(stat));
         }
         break;
       case 1:
         if (hasCO2) {
           int stat = ag.getCO2_Raw();
-          showTextRectangle("CO2", String(stat), false);
+          showTextRectangle("CO2", String(stat), true);
+          Serial.println("CO2 " + String(stat));
         }
         break;
       case 2:
         if (hasSHT) {
           TMP_RH stat = ag.periodicFetchData();
           if (temp_display == 'F' || temp_display == 'f') {
-            showTextRectangle("TMP", String((stat.t * 9 / 5) + 32, 1) + "F", false);
+            showTextRectangle("TMP", String((stat.t * 9 / 5) + 32, 1) + "F", true);
+            Serial.println("TMP " + String((stat.t * 9 / 5) + 32, 1) + "F");
+
           } else {
-            showTextRectangle("TMP", String(stat.t, 1) + "C", false);
+            showTextRectangle("TMP", String(stat.t, 1) + "C", true);
+            Serial.println("TMP " + String(stat.t, 1) + "C");
+
           }
         }
         break;
       case 3:
         if (hasSHT) {
           TMP_RH stat = ag.periodicFetchData();
-          showTextRectangle("HUM", String(stat.rh) + "%", false);
+          showTextRectangle("HUM", String(stat.rh) + "%", true);
+          Serial.println("HUM " + String(stat.rh));
+
         }
         break;
     }
     counter++;
     if (counter > 3) counter = 0;
     lastUpdate = millis();
+    delay(5000); //waits 5 seconds before going back to displaying the clock 
   }
+  showTextRectangle("CLOCK", String(timeClient.getFormattedTime()), true);
 }
