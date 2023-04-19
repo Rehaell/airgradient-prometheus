@@ -29,7 +29,7 @@ const bool hasCO2 = true;
 const bool hasSHT = true;
 
 // The frequency of measurement updates in milliseconds.
-const int updateFrequency = 60000; //60000 = one minute
+const int updateFrequency = 5000; //60000 = one minute
 
 // For housekeeping.
 long lastUpdate;
@@ -236,16 +236,19 @@ void updateScreen(long now) {
 
         }
         break;
+      case 4:
+        //display clock
+        showTextRectangle("CLOCK", String(timeClient.getFormattedTime()), true);
+        Serial.println("CLOCK " + String(timeClient.getFormattedTime()));
+        delay(2000); //waits 2 seconds before going back to displaying the measurements
+        break;
+
     }
     counter++;
-    if (counter > 3) counter = 0;
+    if (counter > 4) counter = 0;
     lastUpdate = millis();
-    delay(5000); //waits 5 seconds before going back to displaying the clock 
+     
   }
-
-  //display clock
-  showTextRectangle("CLOCK", String(timeClient.getFormattedTime()), true);
-  Serial.println("CLOCK " + String(timeClient.getFormattedTime()));
 
   //if time between 19:00 and 9:00 turn off display
   if (timeClient.getHours() >= 19 || timeClient.getHours() <= 9) {
