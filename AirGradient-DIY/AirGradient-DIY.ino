@@ -14,6 +14,8 @@
 
 #include <NTPClient.h>
 
+#include <ArduinoJson.h>
+
 #include "network_info.h"
 
 AirGradient ag = AirGradient();
@@ -33,8 +35,20 @@ const int updateFrequency = 5000; //60000 = one minute
 
 // For housekeeping.
 long lastUpdate;
+long lastWeatherUpdate;
 int counter = 0;
 
+// For weather information
+#define SUN  0
+#define SUN_CLOUD  1
+#define CLOUD 2
+#define RAIN 3
+#define THUNDER 4
+
+String APIKEY = "put your APIKEY here";
+String NameOfCity = "Slough, GB"
+
+String weatherInfo = "";
 
 // Config End ------------------------------------------------------------------
 
@@ -182,6 +196,67 @@ void HandleNotFound() {
   server.send(404, "text/html", message);
 }
 
+
+String updateWeather() {
+  if (client.connect("api.openweathermap.org", 80)) 
+  {
+    Serial.println("Connecting to OpenWeatherMap server...");
+    // send the HTTP PUT request:
+    client.println("GET /data/2.5/weather?q=" + NameOfCity + "&units=metric&APPID=" + APIKEY + "HTTP/1.1");
+    client.println("Host: api.openweathermap.org");
+    client.println("Connection: close");
+    client.println();
+    // Check HTTP status
+    char status[32] = {0};
+    client.readBytesUntil('\r', status, sizeof(status));
+    // It should be "HTTP/1.0 200 OK" or "HTTP/1.1 200 OK"
+    if (strcmp(status + 9, "200 OK") != 0) 
+    {
+      Serial.print(F("Unexpected response: "));
+      Serial.println(status);
+      return "No connection!";
+    }
+    // Skip HTTP headers
+    char endOfHeaders[] = "\r\n\r\n";
+    if (!client.find(endOfHeaders)) 
+    {
+      Serial.println(F("Invalid response"));
+      return "No connection!";
+    }
+    // Allocate the JSON document
+    // Use arduinojson.org/v6/assistant to compute the capacity.
+    const size_t capacity = JSON_ARRAY_SIZE(1) + JSON_OBJECT_SIZE(1) + 2*JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(4) + 2*JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(13) + 270;
+    DynamicJsonDocument doc(capacity);
+    
+    // Parse JSON object
+    DeserializationError error = deserializeJson(doc, client);
+    if (error) {
+      Serial.print(F("deserializeJson() failed: "));
+      Serial.println(error.c_str());
+      return "Deserialization failed!";
+    }
+        
+    int weatherId = doc["weather"][0]["id"].as<int>();
+    float weatherTemperature = doc["main"]["temp"].as<float>();
+    int weatherHumidity = doc["main"]["humidity"].as<int>();
+    Serial.println(F("Response:"));
+    Serial.print("Weather: ");
+    Serial.println(weatherId);
+    Serial.print("Temperature: ");
+    Serial.println(weatherTemperature);
+    Serial.print("Humidity: ");
+    Serial.println(weatherHumidity);
+    Serial.println();
+
+    return String(weatherId) + ", " + String(weatherTemperature) + ", " + String(weatherHumidity);
+  } 
+  else {
+    // if you couldn't make a connection:
+    Serial.println("connection failed");
+    return "No data!";
+  }
+}
+
 // DISPLAY
 void showTextRectangle(String ln1, String ln2, boolean small) {
   display.clear();
@@ -237,15 +312,25 @@ void updateScreen(long now) {
         }
         break;
       case 4:
+        //get weather if half hour has passed since last update
+        if (millis() - lastWeatherUpdate > 1800000) {
+          weatherInfo = updateWeather();
+          Serial.println("Weather updated: " + weatherInfo);
+          lastWeatherUpdate = millis();
+        } else {
+          Serial.println("Weather update skipped");
+        }
+        showTextRectangle(weatherInfo);
+        break;
+      case 5:
         //display clock
         showTextRectangle("CLOCK", String(timeClient.getFormattedTime()), true);
         Serial.println("CLOCK " + String(timeClient.getFormattedTime()));
         delay(2000); //waits 2 seconds before going back to displaying the measurements
         break;
-
     }
     counter++;
-    if (counter > 4) counter = 0;
+    if (counter > 5) counter = 0;
     lastUpdate = millis();
      
   }
