@@ -2,12 +2,12 @@
 #define NETWORK_INFO_H
 
 // WiFi and IP connection info.
-const char* ssid = "your-very-own-ssid";
-const char* password = "your-very-own-password";
+const char* ssid = "It-Hertz-When-IP";
+const char* password = "ruipipasmadalena2013";
 const int port = 9926;
 
 // NTP server info.
-const char* ntpServer = "your-very-own-custom-ntp-server"; //custom NTP server
+const char* ntpServer = "192.168.20.1"; //custom NTP server
 
 // Uncomment the line below to configure a static IP address.
 // #define staticip
