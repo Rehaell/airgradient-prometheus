@@ -39,10 +39,6 @@ long lastUpdate;
 int counter = 0;
 
 
-//UTC time offset
-const long utcOffsetInSeconds = 3600; //UTC+1
-
-
 // Config End ------------------------------------------------------------------
 
 
@@ -52,7 +48,7 @@ SSD1306Wire display(0x3c, SDA, SCL);
 ESP8266WebServer server(port);
 
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, ntpServer, utcOffsetInSeconds); 
+NTPClient timeClient(ntpUDP, ntpServer); 
 
 void setup() {
   Serial.begin(115200);
@@ -249,12 +245,9 @@ void updateScreen(long now) {
     lastUpdate = millis();
     delay(5000); //waits 5 seconds before going back to displaying the clock 
   }
-  //shows summer time
-  if (timeClient.isSummerTime()) {
-    showTextRectangle("CLOCK", String(timeClient.getFormattedTime()) + 1, true);
-  } else {
-    showTextRectangle("CLOCK", String(timeClient.getFormattedTime()), true);
-  }
+
+  //display clock
+  showTextRectangle("CLOCK", String(timeClient.getFormattedTime()), true);
 
   //if time between 19:00 and 9:00 turn off display
   if (timeClient.getHours() >= 19 || timeClient.getHours() <= 9) {
