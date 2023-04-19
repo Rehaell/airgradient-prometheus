@@ -235,7 +235,7 @@ void updateScreen(long now) {
         if (hasSHT) {
           TMP_RH stat = ag.periodicFetchData();
           showTextRectangle("HUM", String(stat.rh) + "%", true);
-          Serial.println("HUM " + String(stat.rh));
+          Serial.println("HUM " + String(stat.rh) + "%");
 
         }
         break;
@@ -248,6 +248,7 @@ void updateScreen(long now) {
 
   //display clock
   showTextRectangle("CLOCK", String(timeClient.getFormattedTime()), true);
+  Serial.println("CLOCK " + String(timeClient.getFormattedTime()));
 
   //if time between 19:00 and 9:00 turn off display
   if (timeClient.getHours() >= 19 || timeClient.getHours() <= 9) {
