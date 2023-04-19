@@ -6,6 +6,9 @@ const char* ssid = "It-Hertz-When-IP";
 const char* password = "ruipipasmadalena2013";
 const int port = 9926;
 
+// Optional
+const char* deviceId = "your-very-own-hostname"; //change me
+
 // NTP server info.
 const char* ntpServer = "192.168.20.1"; //custom NTP server
 

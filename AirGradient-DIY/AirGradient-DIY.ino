@@ -20,9 +20,6 @@ AirGradient ag = AirGradient();
 
 // Config ----------------------------------------------------------------------
 
-// Optional
-const char* deviceId = "your-very-own-hostname"; //change me
-
 // set to 'F' to switch display from Celcius to Fahrenheit
 char temp_display = 'C';
 
@@ -252,8 +249,8 @@ void updateScreen(long now) {
 
   //if time between 19:00 and 9:00 turn off display
   if (timeClient.getHours() >= 19 || timeClient.getHours() <= 9) {
-    display.setContrast(10, 5, 0)
+    display.setContrast(10, 5, 0);
   } else {
-    display.setContrast(100, 241, 64)
+    display.setContrast(100, 241, 64);
   }
 }
