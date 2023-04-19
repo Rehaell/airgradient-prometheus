@@ -2,8 +2,8 @@
 #define NETWORK_INFO_H
 
 // WiFi and IP connection info.
-const char* ssid = "It-Hertz-When-IP";
-const char* password = "ruipipasmadalena2013";
+const char* ssid = "your-very-own-ssid";
+const char* password = "your-very-own-password";
 const int port = 9926;
 
 // NTP server info.
