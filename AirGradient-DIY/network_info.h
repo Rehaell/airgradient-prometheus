@@ -6,6 +6,9 @@ const char* ssid = "It-Hertz-When-IP";
 const char* password = "ruipipasmadalena2013";
 const int port = 9926;
 
+// NTP server info.
+const char* ntpServer = "your-very-own-custom-ntp-server"; //custom NTP server
+
 // Uncomment the line below to configure a static IP address.
 // #define staticip
 #ifdef staticip

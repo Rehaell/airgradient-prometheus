@@ -41,7 +41,7 @@ int counter = 0;
 
 //UTC time offset
 const long utcOffsetInSeconds = 3600; //UTC+1
-const char* ntpServer = "your-very-own-custom-ntp-server"; //custom NTP server
+
 
 // Config End ------------------------------------------------------------------
 
