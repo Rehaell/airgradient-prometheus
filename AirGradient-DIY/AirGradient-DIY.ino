@@ -39,15 +39,6 @@ long lastWeatherUpdate;
 int counter = 0;
 
 // For weather information
-#define SUN  0
-#define SUN_CLOUD  1
-#define CLOUD 2
-#define RAIN 3
-#define THUNDER 4
-
-String APIKEY = "put your APIKEY here";
-String NameOfCity = "Slough, GB"
-
 String weatherInfo = "";
 
 // Config End ------------------------------------------------------------------
@@ -315,12 +306,12 @@ void updateScreen(long now) {
         //get weather if half hour has passed since last update
         if (millis() - lastWeatherUpdate > 1800000) {
           weatherInfo = updateWeather();
-          Serial.println("Weather updated: " + weatherInfo);
+          Serial.println("Weather update: " + weatherInfo);
           lastWeatherUpdate = millis();
         } else {
           Serial.println("Weather update skipped");
         }
-        showTextRectangle(weatherInfo);
+        showTextRectangle("Weather", weatherInfo, true);
         break;
       case 5:
         //display clock
