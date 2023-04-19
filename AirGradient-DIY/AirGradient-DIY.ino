@@ -45,7 +45,10 @@ const char* ntpServer = "your-very-own-custom-ntp-server"; //custom NTP server
 
 // Config End ------------------------------------------------------------------
 
+
 SSD1306Wire display(0x3c, SDA, SCL);
+
+
 ESP8266WebServer server(port);
 
 WiFiUDP ntpUDP;
@@ -246,5 +249,17 @@ void updateScreen(long now) {
     lastUpdate = millis();
     delay(5000); //waits 5 seconds before going back to displaying the clock 
   }
-  showTextRectangle("CLOCK", String(timeClient.getFormattedTime()), true);
+  //shows summer time
+  if (timeClient.isSummerTime()) {
+    showTextRectangle("CLOCK", String(timeClient.getFormattedTime()) + 1, true);
+  } else {
+    showTextRectangle("CLOCK", String(timeClient.getFormattedTime()), true);
+  }
+
+  //if time between 19:00 and 9:00 turn off display
+  if (timeClient.getHours() >= 19 || timeClient.getHours() <= 9) {
+    display.setContrast(10, 5, 0)
+  } else {
+    display.setContrast(100, 241, 64)
+  }
 }
