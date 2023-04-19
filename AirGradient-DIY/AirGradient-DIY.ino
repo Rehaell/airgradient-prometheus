@@ -250,7 +250,7 @@ void updateScreen(long now) {
   //if time between 19:00 and 9:00 turn off display
   if (timeClient.getHours() >= 19 || timeClient.getHours() <= 9) {
     display.setContrast(10, 5, 0);
-  } else {
+  } else { //turns it back on
     display.setContrast(100, 241, 64);
   }
 }
