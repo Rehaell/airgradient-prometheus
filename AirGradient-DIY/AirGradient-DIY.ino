@@ -32,13 +32,15 @@ const bool hasSHT = true;
 
 // The frequency of measurement updates in milliseconds.
 const int updateFrequency = 5000; //60000 = one minute
+//updates the weather every 30 minutes
+const int updateWeatherFrequency = 1800000 
 
 // For housekeeping.
 long lastUpdate;
 long lastWeatherUpdate;
 int counter = 0;
 
-// For weather information
+// To store the weather information
 String weatherInfo = "";
 
 // Config End ------------------------------------------------------------------
@@ -118,8 +120,8 @@ void loop() {
 
   timeClient.update();
 
-  weatherInfo = updateWeather();
-  
+  updateWeather(t);
+
   updateScreen(t);
 }
 
@@ -190,12 +192,11 @@ void HandleNotFound() {
 }
 
 
-String updateWeather() {
+void updateWeather(long now) {
 
-  if (millis() - lastWeatherUpdate > 1800000) {
-
-    if (client.connect("api.openweathermap.org", 80)) 
-    {
+  if ((now - lastWeatherUpdate) > updateWeatherFrequency) { 
+    //updates the weather at a fix interval
+    if (client.connect("api.openweathermap.org", 80)) {
       Serial.println("Connecting to OpenWeatherMap server...");
       // send the HTTP PUT request:
       client.println("GET /data/2.5/weather?q=" + NameOfCity + "&units=metric&APPID=" + APIKEY + "HTTP/1.1");
@@ -206,18 +207,16 @@ String updateWeather() {
       char status[32] = {0};
       client.readBytesUntil('\r', status, sizeof(status));
       // It should be "HTTP/1.0 200 OK" or "HTTP/1.1 200 OK"
-      if (strcmp(status + 9, "200 OK") != 0) 
-      {
+      if (strcmp(status + 9, "200 OK") != 0) {
         Serial.print(F("Unexpected response: "));
         Serial.println(status);
-        return "No connection!";
+        weatherInfo = "No connection!";
       }
       // Skip HTTP headers
       char endOfHeaders[] = "\r\n\r\n";
-      if (!client.find(endOfHeaders)) 
-      {
+      if (!client.find(endOfHeaders)) {
         Serial.println(F("Invalid response"));
-        return "No connection!";
+        weatherInfo = "No connection!";
       }
       // Allocate the JSON document
       // Use arduinojson.org/v6/assistant to compute the capacity.
@@ -229,7 +228,7 @@ String updateWeather() {
       if (error) {
         Serial.print(F("deserializeJson() failed: "));
         Serial.println(error.c_str());
-        return "Deserialization failed!";
+        weatherInfo = "Deserialization failed!";
       }
           
       int weatherId = doc["weather"][0]["id"].as<int>();
@@ -244,14 +243,13 @@ String updateWeather() {
       Serial.println(weatherHumidity);
       Serial.println();
 
+      weatherInfo = String(weatherTemperature) + "C, " + String(weatherHumidity) + "%";
       lastWeatherUpdate = millis();
-
-      return String(weatherId) + ", " + String(weatherTemperature) + ", " + String(weatherHumidity);
     } 
     else {
       // if you couldn't make a connection:
       Serial.println("connection failed");
-      return "No data!";
+      weatherInfo = "No data!";
     }
   else 
     Serial.println("Weather update skipped");
@@ -299,7 +297,6 @@ void updateScreen(long now) {
           } else {
             showTextRectangle("TMP", String(stat.t, 1) + "C", true);
             Serial.println("TMP " + String(stat.t, 1) + "C");
-
           }
         }
         break;
@@ -308,11 +305,10 @@ void updateScreen(long now) {
           TMP_RH stat = ag.periodicFetchData();
           showTextRectangle("HUM", String(stat.rh) + "%", true);
           Serial.println("HUM " + String(stat.rh) + "%");
-
         }
         break;
       case 4:
-        showTextRectangle("Weather", weatherInfo, true);
+        showTextRectangle("Outside", weatherInfo, true);
         break;
       case 5:
         //display clock
@@ -324,13 +320,14 @@ void updateScreen(long now) {
     counter++;
     if (counter > 5) counter = 0;
     lastUpdate = millis();
-     
   }
 
   //if time between 19:00 and 9:00 turn off display backlight
   if (timeClient.getHours() >= 19 || timeClient.getHours() <= 9) {
     display.setContrast(10, 5, 0);
+    Serial.println("Turning the lights off");
   } else { //turns it back on
     display.setContrast(100, 241, 64);
+    Serial.println("Turning the lights on");
   }
 }
