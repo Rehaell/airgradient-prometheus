@@ -196,10 +196,10 @@ void updateWeather(long now) {
 
   if ((now - lastWeatherUpdate) > updateWeatherFrequency) { 
     //updates the weather at a fix interval
-    if (client.connect("api.openweathermap.org", 80)) {
+    if (client.connect("api.openweathermap.org", 443)) {
       Serial.println("Connecting to OpenWeatherMap server...");
       // send the HTTP PUT request:
-      client.println("GET /data/2.5/weather?q=" + NameOfCity + "&units=metric&APPID=" + APIKEY + "HTTP/1.1");
+      client.println("GET /data/2.5/weather?lat=" + latitude + "&lon=" + longitude + "&units=metric&appid=" + APIKEY + "HTTP/1.1");
       client.println("Host: api.openweathermap.org");
       client.println("Connection: close");
       client.println();
@@ -211,12 +211,14 @@ void updateWeather(long now) {
         Serial.print(F("Unexpected response: "));
         Serial.println(status);
         weatherInfo = "No connection!";
+        return;
       }
       // Skip HTTP headers
       char endOfHeaders[] = "\r\n\r\n";
       if (!client.find(endOfHeaders)) {
         Serial.println(F("Invalid response"));
         weatherInfo = "No connection!";
+        return;
       }
       // Allocate the JSON document
       // Use arduinojson.org/v6/assistant to compute the capacity.
@@ -229,6 +231,7 @@ void updateWeather(long now) {
         Serial.print(F("deserializeJson() failed: "));
         Serial.println(error.c_str());
         weatherInfo = "Deserialization failed!";
+        return;
       }
           
       int weatherId = doc["weather"][0]["id"].as<int>();
