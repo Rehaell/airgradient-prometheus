@@ -14,7 +14,7 @@
 
 #include <NTPClient.h>
 
-#include <ArduinoJson.h>
+
 
 #include "network_info.h"
 
@@ -33,7 +33,7 @@ const bool hasSHT = true;
 // The frequency of measurement updates in milliseconds.
 const int updateFrequency = 5000; //60000 = one minute
 //updates the weather every 30 minutes
-const int updateWeatherFrequency = 1800000 
+const int updateWeatherFrequency = 1800000 ;
 
 // For housekeeping.
 long lastUpdate;
