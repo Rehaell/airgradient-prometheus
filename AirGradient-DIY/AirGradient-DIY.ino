@@ -5,16 +5,13 @@
 
 #include <AirGradient.h>
 #include <ESP8266WiFi.h>
+#include <WiFiClientSecure.h>
 #include <ESP8266WebServer.h>
 #include <WiFiUdp.h>
-#include <WiFiClient.h>
-
 #include <Wire.h>
 #include "SSD1306Wire.h"
-
 #include <NTPClient.h>
-
-
+#include <ArduinoJson.h>
 
 #include "network_info.h"
 
@@ -32,12 +29,12 @@ const bool hasSHT = true;
 
 // The frequency of measurement updates in milliseconds.
 const int updateFrequency = 5000; //60000 = one minute
-//updates the weather every 30 minutes
-const int updateWeatherFrequency = 1800000 ;
+// The frequency of weather updates in milliseconds.
+const int updateWeatherFrequency = 5000 ; //1800000 = 30 minutes
 
 // For housekeeping.
-long lastUpdate;
-long lastWeatherUpdate;
+long lastUpdate = 0;
+long lastWeatherUpdate = 0;
 int counter = 0;
 
 // To store the weather information
@@ -48,11 +45,13 @@ String weatherInfo = "";
 
 SSD1306Wire display(0x3c, SDA, SCL);
 
-
 ESP8266WebServer server(port);
 
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, ntpServer); 
+NTPClient timeClient(ntpUDP, ntpServer, 3600); //adds one hour to the time to match the UK time
+
+WiFiClientSecure client;
+
 
 void setup() {
   Serial.begin(115200);
@@ -193,69 +192,10 @@ void HandleNotFound() {
 
 
 void updateWeather(long now) {
+  
+  
+  String URL = "https://api.openweathermap.org/data/2.5/weather?lat=" + latitude + "&lon=" + longitude + "&units=metric&appid=" + APIKEY;  
 
-  if ((now - lastWeatherUpdate) > updateWeatherFrequency) { 
-    //updates the weather at a fix interval
-    if (client.connect("api.openweathermap.org", 443)) {
-      Serial.println("Connecting to OpenWeatherMap server...");
-      // send the HTTP PUT request:
-      client.println("GET /data/2.5/weather?lat=" + latitude + "&lon=" + longitude + "&units=metric&appid=" + APIKEY + "HTTP/1.1");
-      client.println("Host: api.openweathermap.org");
-      client.println("Connection: close");
-      client.println();
-      // Check HTTP status
-      char status[32] = {0};
-      client.readBytesUntil('\r', status, sizeof(status));
-      // It should be "HTTP/1.0 200 OK" or "HTTP/1.1 200 OK"
-      if (strcmp(status + 9, "200 OK") != 0) {
-        Serial.print(F("Unexpected response: "));
-        Serial.println(status);
-        weatherInfo = "No connection!";
-        return;
-      }
-      // Skip HTTP headers
-      char endOfHeaders[] = "\r\n\r\n";
-      if (!client.find(endOfHeaders)) {
-        Serial.println(F("Invalid response"));
-        weatherInfo = "No connection!";
-        return;
-      }
-      // Allocate the JSON document
-      // Use arduinojson.org/v6/assistant to compute the capacity.
-      const size_t capacity = JSON_ARRAY_SIZE(1) + JSON_OBJECT_SIZE(1) + 2*JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(4) + 2*JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(13) + 270;
-      DynamicJsonDocument doc(capacity);
-      
-      // Parse JSON object
-      DeserializationError error = deserializeJson(doc, client);
-      if (error) {
-        Serial.print(F("deserializeJson() failed: "));
-        Serial.println(error.c_str());
-        weatherInfo = "Deserialization failed!";
-        return;
-      }
-          
-      int weatherId = doc["weather"][0]["id"].as<int>();
-      float weatherTemperature = doc["main"]["temp"].as<float>();
-      int weatherHumidity = doc["main"]["humidity"].as<int>();
-      Serial.println(F("Response:"));
-      Serial.print("Weather: ");
-      Serial.println(weatherId);
-      Serial.print("Temperature: ");
-      Serial.println(weatherTemperature);
-      Serial.print("Humidity: ");
-      Serial.println(weatherHumidity);
-      Serial.println();
-
-      weatherInfo = String(weatherTemperature) + "C, " + String(weatherHumidity) + "%";
-      lastWeatherUpdate = millis();
-    } 
-    else {
-      // if you couldn't make a connection:
-      Serial.println("connection failed");
-      weatherInfo = "No data!";
-    }
-  else 
-    Serial.println("Weather update skipped");
 }
 
 // DISPLAY
@@ -312,6 +252,7 @@ void updateScreen(long now) {
         break;
       case 4:
         showTextRectangle("Outside", weatherInfo, true);
+        Serial.println("Outside " + weatherInfo);
         break;
       case 5:
         //display clock
@@ -325,12 +266,10 @@ void updateScreen(long now) {
     lastUpdate = millis();
   }
 
-  //if time between 19:00 and 9:00 turn off display backlight
-  if (timeClient.getHours() >= 19 || timeClient.getHours() <= 9) {
+  //if time between 19:00 and 8:00 turn off display backlight
+  if (timeClient.getHours() >= 19 || timeClient.getHours() <= 8) {
     display.setContrast(10, 5, 0);
-    Serial.println("Turning the lights off");
   } else { //turns it back on
     display.setContrast(100, 241, 64);
-    Serial.println("Turning the lights on");
   }
 }
