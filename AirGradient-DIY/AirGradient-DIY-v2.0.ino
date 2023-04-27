@@ -135,6 +135,8 @@ void loop() {
     } else 
         Serial.println("Not time to check offsets yet");
     
+    //updateWeather(t);
+
     updateScreen(t);
 
 }
@@ -221,9 +223,9 @@ void handleNotFound(){
     server.send(404, "text/html", message);
 }
 
-void updateWeather() {
+void updateWeather(long now) {
     HTTPClient http;
-    http.begin("https://wttr.in/"+weatherLocation);
+    http.begin("https://wttr.in/" + weatherLocation);
     int httpCode = http.GET();
 
     if (httpCode == HTTP_CODE_OK) {
