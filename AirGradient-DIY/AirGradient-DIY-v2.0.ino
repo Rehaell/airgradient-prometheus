@@ -30,14 +30,15 @@ const bool hasSHT = true;
 
 // The frequency of measurement updates in milliseconds.
 const int updateFrequency = 5000; //60000 = one minute
-// The frequency of weather updates in milliseconds.
-const int updateWeatherFrequency = 5000 ; //1800000 = 30 minutes
 
 // For housekeeping.
 long lastUpdate = 0;
 long lastWeatherUpdate = 0;
 int counter = 0;
 
+//Weather related variables
+// The frequency of weather updates in milliseconds.
+const int updateWeatherFrequency = 5000 ; //1800000 = 30 minutes
 //offsets for time, temperature, and humidity
 int timeOffset = 0;
 int tempOffset = 0;
@@ -59,8 +60,6 @@ ESP8266WebServer server(port);
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, ntpServer, timeOffset);
-
-
 
 
 void setup() {
@@ -113,17 +112,27 @@ void setup() {
     Serial.print("Hostname: ");
     Serial.println(WiFi.hostname());
 
+    //wait 5 seconds
+    delay(5000);
+
+    // Start the HTTP server.
     server.on("/", handleRoot);
     server.on("/metrics", handleRoot);
     server.on("/offsets", handleOffsets);
     server.onNotFound(handleNotFound);
-
     server.begin();
     Serial.println("HTTP server started at ip " + WiFi.localIP().toString() + ":" + String(port));
 
+    // Start the NTP client and set the time offset
     timeClient.begin();
+    timeClient.setTimeOffset(timeOffset);
+    Serial.println("NTP client started");
 
+    //get the offsets from the remote file
     getOffsetsFromRemoteFile(jsonURL);
+
+    //update the weather
+    updateWeather(weatherJSONURL);
 }
 
 void loop() {
@@ -244,7 +253,6 @@ void updateWeather(long now) {
         temp = "";
         humidity = "";
         weatherDesc = "";
-
         String payload = http.getString();
         //parse the JSON
         DynamicJsonDocument doc(1024);
@@ -256,9 +264,8 @@ void updateWeather(long now) {
         Serial.println("Temp: " + temp);
         Serial.println("Humidity: " + humidity);
         Serial.println("Weather: " + weatherDesc);
-        showTextRectangle(weatherDesc, temp + "C " + humidity + "%" , false);
     } else {
-        Serial.println("Error getting weather");
+        Serial.print("Error getting weather, error code: ");
         Serial.println(httpCode);
     }
 }
@@ -366,9 +373,10 @@ void getOffsetsFromRemoteFile(String file) {
         offsetUpdateString = timeClient.getFormattedTime();
     } else {
         //return to default offsets
+        Serial.print("Error getting offsets, error code: ");
+        Serial.println(httpCode);
         timeOffset = 0;
         tempOffset = 0;
         humOffset = 0;
-        Serial.println("Error getting offsets from remote file");
     }
 }
