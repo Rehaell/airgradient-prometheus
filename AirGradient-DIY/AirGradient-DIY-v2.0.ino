@@ -44,6 +44,11 @@ int tempOffset = 0;
 int humOffset = 0;
 String offsetUpdateString = "";
 
+//variables for the weather
+String temp = "";
+String humidity = "";
+String weatherDesc = "";
+
 // Config End ------------------------------------------------------------------
 
 AirGradient ag = AirGradient();
@@ -131,11 +136,17 @@ void loop() {
     //check the offsets every hour
     if (t % 3600000 == 0) {
         Serial.println("Checking offsets");
-        getOffsetsFromRemoteFile(jsonURL);
+        getOffsetsFromRemoteFile(offsetJSONURL);
     } else 
         Serial.println("Not time to check offsets yet");
     
-    //updateWeather(t);
+    //updates the weather every 30 minutes
+    if (t - lastWeatherUpdate > updateWeatherFrequency) {
+        Serial.println("Updating weather");
+        updateWeather(weatherJSONURL);
+        lastWeatherUpdate = t;
+    } else 
+        Serial.println("Not time to update weather yet");
 
     updateScreen(t);
 
@@ -225,12 +236,27 @@ void handleNotFound(){
 
 void updateWeather(long now) {
     HTTPClient http;
-    http.begin("https://wttr.in/" + weatherLocation);
+    http.begin(weatherInformationURL);
     int httpCode = http.GET();
-
+  
     if (httpCode == HTTP_CODE_OK) {
+        Serial.println("Got weather");
+        temp = "";
+        humidity = "";
+        weatherDesc = "";
+
         String payload = http.getString();
-        Serial.println("Weather: " + payload);
+        //parse the JSON
+        DynamicJsonDocument doc(1024);
+        deserializeJson(doc, payload);
+        JsonObject weather = doc["current_condition"][0];
+        temp += weather["temp_C"];
+        humidity += weather["humidity"];
+        weatherDesc += weather["weatherDesc"][0]["value"];
+        Serial.println("Temp: " + temp);
+        Serial.println("Humidity: " + humidity);
+        Serial.println("Weather: " + weatherDesc);
+        showTextRectangle(weatherDesc, temp + "C " + humidity + "%" , false);
     } else {
         Serial.println("Error getting weather");
         Serial.println(httpCode);
@@ -289,7 +315,8 @@ void updateScreen(long now) {
         }
         break;
       case 4:
-        ///show weather
+        showTextRectangle("WEATHER " + weatherDesc, temp + "C " + humidity + "%" , true);
+        Serial.println("WEATHER " + weatherDesc + " " + temp + "C " + humidity + "%");
         break;
       case 5:
         //display clock
