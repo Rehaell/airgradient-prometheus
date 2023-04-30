@@ -10,13 +10,13 @@
 #include <AirGradient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
-#include <HTTPClient.h>
+#include <HttpClient.h>
 #include <WiFiUdp.h>
 #include <ArduinoJson.h>
 #include <NTPClient.h>
 #include "SSD1306Wire.h"
 
-#include <network_info.h>
+#include "network_info.h"
 
 // Config ----------------------------------------------------------------------
 
@@ -129,10 +129,10 @@ void setup() {
     Serial.println("NTP client started");
 
     //get the offsets from the remote file
-    getOffsetsFromRemoteFile(jsonURL);
+    getOffsetsFromRemoteFile(offsetJSONURL);
 
     //update the weather
-    updateWeather(weatherJSONURL);
+    updateWeather(weatherInformationURL);
 }
 
 void loop() {
@@ -152,7 +152,7 @@ void loop() {
     //updates the weather every 30 minutes
     if (t - lastWeatherUpdate > updateWeatherFrequency) {
         Serial.println("Updating weather");
-        updateWeather(weatherJSONURL);
+        updateWeather(weatherInformationURL);
         lastWeatherUpdate = t;
     } else 
         Serial.println("Not time to update weather yet");
@@ -347,7 +347,7 @@ void updateScreen(long now) {
 
 void getOffsetsFromRemoteFile(String file) {
 
-    HTTPClient http;
+    HttpClient http;
     http.begin(file);
     int httpCode = http.GET();
 
