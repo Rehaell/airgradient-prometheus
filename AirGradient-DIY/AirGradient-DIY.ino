@@ -14,6 +14,7 @@
 #include <WiFiUdp.h>
 #include <ArduinoJson.h>
 #include <NTPClient.h>
+#include <Wire.h>
 #include "SSD1306Wire.h"
 
 #include "network_info.h"
